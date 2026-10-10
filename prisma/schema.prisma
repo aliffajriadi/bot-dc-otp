@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  discordId       String
+  countryId       String
+  countryName     String
+  operatorId      String
+  operatorName    String?
+  serviceId       String
+  serviceName     String
+  providerPrice   Int // harga dari OTPCepat
+  markup          Int // markup yang berlaku saat order
+  paidAmount      Int // providerPrice + markup
+  providerOrderId String?     @unique
+  phoneNumber     String?
+  smsText         String?     @db.Text
+  status          OrderStatus
+  expiresAt       DateTime?
+  refundedAt      DateTime?
+  failReason      String?
+  dmChannelId     String?
+  dmMessageId     String?
+  cancelAttempts  Int         @default(0)
+  refundAttempts  Int         @default(0)
+  nextRetryAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  events          OrderEvent[]
+
+  @@index([discordId])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  WAITING_SMS
+  COMPLETED
+  CANCEL_PENDING
+  REFUNDED
+  REFUND_FAILED
+  FAILED
+  FAILED_REFUNDED
+  NEEDS_REVIEW
+}
+
+model OrderEvent {
+  id        Int      @id @default(autoincrement())
+  orderId   String
+  fromState String?
+  toState   String
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+}
+
+model Setting {
+  key   String @id
+  value String @db.Text
+}
+
+model ServiceMarkup {
+  serviceId String @id
+  markup    Int
+}
